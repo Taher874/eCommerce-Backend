@@ -1,3 +1,4 @@
+using eCommerce.DTOs.Login;
 using eCommerce.DTOs.Register;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,50 @@ public class AuthController : ControllerBase
         {
             Success = true,
             Message = "Registered Successfully",
+            Data = response
+        });
+    }
+
+
+    [HttpPost("Login")]
+    public async Task<IActionResult> Login(LoginRequestDto dto)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Email == dto.Email);
+        if (user == null)
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Invalid email or password",
+                Data = null
+            });
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        {
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Invalid email or password",
+                Data = null
+            });
+        }
+
+        var response = new LoginResponseDto
+        {
+            Token = _jwtService.GenerateToken(user),
+            User = new LoginUserDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email
+            }
+        };
+
+        return Ok(new ApiResponse<LoginResponseDto>
+        {
+            Success = true,
+            Message = "Logged in successfully",
             Data = response
         });
     }
